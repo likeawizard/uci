@@ -40,8 +40,8 @@ type NewGameOpts struct {
 		Key string
 	}
 	InitialFen string
-	Moves string
-	Side     int    // Which side should the Engine play as. Must be uci.W or uci.B
+	Moves      string
+	Side       int // Which side should the Engine play as. Must be uci.W or uci.B
 }
 
 // Options to pass when looking for best move
@@ -63,6 +63,7 @@ type GoOpts struct {
 type GoResp struct {
 	Bestmove string // Best move the Engine could find
 	Ponder   string // Ponder move
+	CP       int    // Engine evlauation in Centipawns
 }
 
 const (
@@ -152,9 +153,9 @@ func (eng *Engine) SetOption(name string, value interface{}) bool {
 				v, _ = value.(string)
 			case int:
 				vv, _ := value.(int)
-				if (vv < option.Min) {
+				if vv < option.Min {
 					vv = option.Min
-				} else if (vv > option.Max) {
+				} else if vv > option.Max {
 					vv = option.Max
 				}
 				v = strconv.Itoa(vv)
@@ -257,9 +258,11 @@ func (eng *Engine) Go(opts GoOpts) GoResp {
 	eng.send(goCmd)
 	lines := eng.receive("bestmove")
 	words := strings.Split(lines[len(lines)-1], " ")
+	debug := strings.Fields(lines[len(lines)-2])
 
 	bestmove := ""
 	ponder := ""
+	cp := 0
 	if len(words) >= 2 {
 		bestmove = words[1]
 	}
@@ -267,9 +270,16 @@ func (eng *Engine) Go(opts GoOpts) GoResp {
 		ponder = words[3]
 	}
 
+	if len(debug) >= 9 {
+		if i, err := strconv.Atoi(debug[9]); err == nil {
+			cp = i
+		}
+	}
+
 	return GoResp{
 		Bestmove: bestmove,
 		Ponder:   ponder,
+		CP:       cp,
 	}
 }
 
